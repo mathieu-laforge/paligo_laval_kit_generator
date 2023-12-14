@@ -1,6 +1,6 @@
-from paligo_client.paligo_requests.paligo_requests import Paligo_request
+from paligo_requests.paligo_requests import Paligo_request
 from utils.app_settings import app_settings
-from paligo_client.generate_pdf_kits.fetch_bd_info import get_all_kits_for_info, get_paligo_content_by_tag
+from generate_pdf_kits.data_preparation import tag_list_for_kits, get_paligo_content_by_tag, tag_replacements_names
 import time
 
 # type: publication article
@@ -14,10 +14,10 @@ class Generate_kits_publications:
         self.document_url = app_settings("prod_paligo_request", "request", "document")[0][1]
         self.kits_folder_id = 40199837
         self.paligo_request = Paligo_request("prod")
-        self.kit_lists = get_all_kits_for_info()
+        self.kit_lists = tag_list_for_kits()
         self.kit_lists_names = []
         for name in self.kit_lists:
-            self.kit_lists_names.append(name[18])
+            self.kit_lists_names.append(name["title"])
         self.existing_publications = self.fetch_existing_publications()
         self.pub_list_names = []
         for name in self.existing_publications:
@@ -51,12 +51,21 @@ class Generate_kits_publications:
         return all_documents
     
     def create_new_kit(self):
-        new_publications = [x for x in self.kit_lists if x[18] not in self.pub_list_names]
+        new_publications = [x for x in self.kit_lists if x["title"] not in self.pub_list_names]
         #print(new_publications)
         if len(new_publications) == 0:
-            print("0 publication to create.")
+            print("0 publication to create.")  
+        
         for topic_data in new_publications:
-            self.create_publications_topics(topic_data)
+            topic_name = topic_data["title"]
+            names_list = tag_replacements_names()
+            name = [x["displayName"] for x in names_list if x["tag"] == topic_data["title"]]
+            if len(name) == 0:
+                print(f"The creation of: {topic_name} is impossible!")
+                print("Verify if the tag is listed in the Dashboard")
+            else:
+                topic_title = name[0]
+                self.create_publications_topics(topic_data, topic_title)
         
     def delete_intruder_publications(self):
         intruders = [x for x in self.existing_publications if x["name"] not in self.kit_lists_names]
@@ -71,13 +80,12 @@ class Generate_kits_publications:
                 print(f"Delete topic: {name}")
                 print(response)
              
-    def create_publications_topics(self, topic_data):
-        topic_name = topic_data[18]
-        name = topic_data[1]
+    def create_publications_topics(self, topic_data, topic_title):
+        topic_name = topic_data["title"]
         basic_publication_content = f"""<?xml version="1.0"?>
         <article xmlns="http://docbook.org/ns/docbook" xmlns:xinfo="http://ns.expertinfo.se/cms/xmlns/1.0">
         <info>
-            <title>{name}</title>
+            <title>{topic_title}</title>
             <subtitle></subtitle>
             <mediaobject role="titleimage">
             <imageobject>
@@ -203,4 +211,4 @@ class Update_kit_publication:
 if __name__ == "__main__":
     gen_kit = Generate_kits_publications()
     gen_kit.run_kits_generator()
-    gen_kit.run_kit_update()
+    #gen_kit.run_kit_update()

@@ -1,5 +1,6 @@
 from generate_pdf_kits.generate_kits import Generate_kits_publications
 from generate_pdf_kits.pull_publications import Extractions_kits, Extraction_annexe_B
+from generate_pdf_kits.paligo_publication_watcher import Paligo_publication_watcher
 
 class bcolors:
     HEADER = '\033[95m'
@@ -34,9 +35,14 @@ class init_ui_text:
       def menu_principal(self):
             print(f"{bcolors.BOLD}Choisisser parmis les options suivantes: ")            
             print("")
-            print(f"{bcolors.BOLD}1. {bcolors.ENDC}GÉNÉRATION DES FICHES")
+            print(f"{bcolors.BOLD}1. {bcolors.ENDC}MISE À JOUR DE LA BASE DE DONNÉES")
             print("")
-            print(f"{bcolors.BOLD}2. {bcolors.ENDC}PUBLICATION ET EXTRACTION DES KITS")
+            print(f"{bcolors.BOLD}2. {bcolors.ENDC}CRÉATION ET MISE À JOUR DES PUBLICATIONS DES FICHES")
+            print("        Utilise la base de données existantes, Appelle les tags de paligo selon la liste dans la config.py")
+            print("        Appelle les tags de paligo selon la liste dans la config.py")
+            print("        Crée, valide et met à jour les publications des fiches selon les tags")
+            print("")
+            print(f"{bcolors.BOLD}3. {bcolors.ENDC}PUBLICATION ET EXTRACTION DES KITS")
             print("")
             #print(f"{bcolors.BOLD}3. {bcolors.ENDC}Else")
             #print("")
@@ -46,7 +52,7 @@ class init_ui_text:
             
             print(f"{bcolors.HEADER}GÉNÉRATION DES FICHES{bcolors.ENDC}")
             print("")
-            print("lancement des la génération")
+            print("lancement de la génération")
             print("")
             
 
@@ -111,21 +117,29 @@ class Docubo_program:
             while self.choice != "x":
                   if self.choice == "1":
                         try:
-                              self.choice = input("Est-ce que la base de données est à jour ( y / n ): ")
-                              while self.choice not in ["oui", "yes", "no", "non", "y", "n"]:
-                                    print("Essayer encore")
-                              else:
-                                    self.ui.generate_fiches()
-                                    gen_k = Generate_kits_publications()
-                                    gen_k.run_kits_generator()
+                              #Fiches et extraits
+                              update_db = Paligo_publication_watcher()
+                              update_db.run_bypass_pub_db()
+                        except Exception as e:
+                              self.ui.fail(e)      
+                              self.menu_principal()
+                        self.ui.succes()     
+                        self.menu_principal()
+                  
+                  
+                  if self.choice == "2":
+                        try:
                               
+                              self.ui.generate_fiches()
+                              gen_k = Generate_kits_publications()
+                              gen_k.run_kits_generator()
                               
                         except Exception as e:
                               print(e)
                         self.ui.succes()
                         self.ui.menu_principal()
 
-                  if self.choice == "2":
+                  if self.choice == "3":
                         self.extraction_kits()
 
                   """if self.choice == "3":      
@@ -155,6 +169,7 @@ class Docubo_program:
                         except Exception as e:
                               self.ui.fail(e)      
                               self.menu_principal()
+                        print(f"Total exceptions grids: {ext_annexe.exception_counter_total}")
                         self.ui.succes()     
                         self.menu_principal()
 

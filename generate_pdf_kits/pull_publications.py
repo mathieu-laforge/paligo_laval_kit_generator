@@ -1,21 +1,20 @@
 from utils.app_settings import app_settings
-from paligo_client.paligo_requests.paligo_requests import Paligo_request
+from paligo_requests.paligo_requests import Paligo_request
 from bs4 import BeautifulSoup as Soup
 import time
 import zipfile, io
 import os
 import shutil
 import glob
+from generate_pdf_kits.data_preparation import parse_paligo_tables
 from utils.file_access import file_access
-from urllib.parse import quote
 import PyPDF2
-from PyPDF2 import PdfReader
-from PyPDF2 import PdfWriter
-import fitz
+
 
 class Extraction_annexe_B:
+    exception_counter_total = 0
     def __init__(self):
-        self.grid_f_path = "paligo_client\\generate_pdf_kits\\Bundle de règlement CDU\\Grilles d'exceptions"
+        self.grid_f_path = "production\\Bundle de règlement CDU\\Grilles d'exceptions"
         self.path_list = [x for x in glob.glob(f"{self.grid_f_path}\\**\\*.pdf") if x.split('\\')[-1].startswith("Grilles")]
         #print(self.path_list)
         
@@ -62,8 +61,8 @@ class Extraction_annexe_B:
                 print(f"{name}")
                 exception_num +=1
                 pdf_writer.write(output_file)
-        print(f"{str(len(exception_num))} éléments sauvegardés.")        
-        
+        print(f"{str(exception_num)} éléments sauvegardés.")        
+        self.exception_counter_total +=exception_num
             
 
 
@@ -104,11 +103,11 @@ class Pull_publication:
         file_list = z.namelist()
         folder_name = str(file_list[0]).replace("/", "")
         #print(file_list)
-        path = file_access("paligo_client\\generate_pdf_kits\\zip_files_for_kits", None)
+        path = file_access("production\\zip_files_for_kits", None)
         z.extractall(path)
         pdf_zip_path = glob.glob(path+f"\\{folder_name}\\out\\*.pdf")
         
-        destination_path = file_access(f"paligo_client\\generate_pdf_kits\\{self.save_path}", None)
+        destination_path = file_access(f"production\\{self.save_path}", None)
         #print(pdf_zip_path)
         new_path = os.path.join(destination_path, self.output_file_name + ".pdf")
         
@@ -132,8 +131,8 @@ class Extractions_kits:
         self.multi_document = multi_document
         self.single_document = single_document
         self.paligo_r = Paligo_request("prod")
-        self.doc_url = app_settings("prod_paligo_request", "request", "document")[0][1]
-        self.pub_url = app_settings("prod_paligo_request", "request", "publish")[0][1]
+        #self.doc_url = app_settings("prod_paligo_request", "request", "document")[0][1]
+        #self.pub_url = app_settings("prod_paligo_request", "request", "publish")[0][1]
         #self.pub_list_table = self.get_kits_publication_list_table()
         #self.paligo_publication_settings = self.get_pub_settings_list()
         
@@ -157,7 +156,7 @@ class Extractions_kits:
         Returns:
             _type_: _description_
         """        
-        responses = self.paligo_r.list_publish_settings(self.pub_url)
+        responses = self.paligo_r.list_publish_settings(self.paligo_r._publish_url)
         pub_list = []
         for response in responses:
             pub_list.extend(response["publishsettings"])
@@ -207,41 +206,11 @@ class Extractions_kits:
 
     def get_kits_publication_list_table(self):
         kits_table_id = 41345173
-        response = self.paligo_r.get_document_by_ids(self.doc_url, kits_table_id, True)
-        if response["content"] is not None:
-            content_soup = Soup(response["content"], 'xml')
-            table_headers = content_soup.find_all("th")
-            headers = []
-            for th in table_headers:
-                th:Soup
-                headers.append(th.para.string)
-                
-            table_rows = content_soup.tbody.find_all("tr")
-            
-            all_rows = []
-            for row in table_rows:
-                row:Soup
-                table_cells = row.find_all("td")
-                row_data = {}
-                for index, td in enumerate(table_cells):
-                    td:Soup
-                    cell_data = td.para.string
-                    row_data.update({str(headers[index]): cell_data})
-                all_rows.append(row_data)
+        response = self.paligo_r.get_document_by_ids(self.paligo_r._document_url, kits_table_id, True)
+        all_rows = parse_paligo_tables(response)
         return all_rows
 
 if __name__ == "__main__":
     
     
-    #worker = pdf_kits_publish_worker()
-    #worker.create_publishing_list()
-    grid = Extraction_annexe_B()
-    # Replace 'input.pdf' with your PDF file's name
-    input_pdf = 'paligo_client\\generate_pdf_kits\\pdf_test\\grid_test.pdf'
-    # Replace 'output_file_prefix' with the prefix you want for the output files
-    output_file_prefix = 'paligo_client\\generate_pdf_kits\\pdf_test\\'
-    # Set the level at which you want to split (e.g., 2 for the second level)
-    split_level = 0
-
-    grid.run_extraction_annexe_b()
-    #grid.split_pdf_by_bookmark("paligo_client\\generate_pdf_kits\\pdf_test\\test")
+    pass

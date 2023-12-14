@@ -1,32 +1,24 @@
 import requests
-import sqlite3
+
 import base64
 import time
-import os
 
-from PyQt5.QtCore import QObject, pyqtSignal
-import math
 """project imports"""
 import config as cfg
 from concurrent.futures import ThreadPoolExecutor
 from utils.file_access import file_access
 from utils.app_settings import app_settings
 from utils.sqlite_db_management import SqLite_DB_manager
-from paligo_client.paligo_validations.content_validations.topic_media_object_finder import Topic_media_objects_finder as MF
-from paligo_client.paligo_validations.content_validations.topic_sorting import Topic_sorting_categories as Tsort
 from utils.date import Last_change_date
 from utils.sqlite_db_management import SqLite_DB_manager
+from generate_pdf_kits.topic_media_object_finder import Topic_media_objects_finder as MF
 
 
 
-class Paligo_publication_watcher(QObject):
-    finished = pyqtSignal()
-    progress = pyqtSignal(int)
-    worker_logs = pyqtSignal(str)
-    date_update = pyqtSignal(str)
-    def __init__(self, *args, **kwargs):
-        self._pub_watch = kwargs.pop("_pub_watch")
-        super().__init__(*args, **kwargs)
+class Paligo_publication_watcher():
+  
+    def __init__(self):
+        pass
     
     def run_bypass_pub_db(self):
         try: 
@@ -36,9 +28,6 @@ class Paligo_publication_watcher(QObject):
             self.url = app_settings("prod_paligo_request", "request", "forks")[0][1]
             self.cdu_data_base = file_access("db/paligo", "db")
             self.paligo_db = "db/paligo.db"
-            callnumber = self.callnumbers + 1
-            self.prgEcrmt = 90 / callnumber
-            self.progress.emit(self.i)
             for choice in self.selections_list:
                 working_pub_list = []
                 publication_list = app_settings("prod_paligo_publications", "publication_category", choice)
@@ -59,129 +48,21 @@ class Paligo_publication_watcher(QObject):
                     except Exception as e:
                         print("failed to save data to sqlite"+str(e))
                     
-                    self.i += self.prgEcrmt
-                    self.progress.emit(math.floor(self.i))
                     print(f"Traitement de la publication {_name} terminé!")
             generate_date = Last_change_date("all_publications")
             date = generate_date.save_last_modified_date()
-            self.date_update.emit(date)
+            print(date)
             
             #for testing purposes only
             #self.ordered_forks_fetch_list = []
             #self.paligo_drill_forks_structure([25823523], "reglement_l_11870")
             
             
-            self.i = 100
-            self.progress.emit(self.i)
-            self.finished.emit()
         except Exception as e:
-            self.worker_logs.emit("\n"+"Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: \n" + str(e))
+            print("\n"+"Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: \n" + str(e))
             print("Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: " + str(e))
-            self.finished.emit()
         return print("Publication database completed")
         
-    def run_create_publication_database(self):
-        """Fonction principale de la création de la base de données des publications
-        
-        Lance un mise à jour de la base de données db/paligo.db (sqlite3) en fonction de la sélection de l'utilisateur.
-        
-        """
-        #pub_stats = SqLite_DB_manager("db/paligo.db", "publications_stats")
-        #stats_4_loader = pub_stats.fetch_all_data()      
-        try:
-            try:
-                self.callnumbers = 0
-                self.selections_list = []
-                if self._pub_watch.cdu_chkBox.isChecked() == True:
-                    self.selections_list.append("cdu")
-                    self.callnumbers +=4000
-                if self._pub_watch.autre_regl_chkBox.isChecked() == True:
-                    self.selections_list.append("autres_regl")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_1000_chkBox.isChecked() == True:
-                    self.selections_list.append("1000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_2000_chkBox.isChecked() == True:
-                    self.selections_list.append("2000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_3000_chkBox.isChecked() == True:
-                    self.selections_list.append("3000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_4000_chkBox.isChecked() == True:
-                    self.selections_list.append("4000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_5000_chkBox.isChecked() == True:
-                    self.selections_list.append("5000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_6000_chkBox.isChecked() == True:
-                    self.selections_list.append("6000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_7000_chkBox.isChecked() == True:
-                    self.selections_list.append("7000")
-                    self.callnumbers +=1000
-                if self._pub_watch.grille_8000_chkBox.isChecked() == True:
-                    self.selections_list.append("8000")
-                    self.callnumbers +=1000
-                print(self.selections_list)     
-                if len(self.selections_list) == 0:
-                    raise ValueError("Selection must not be empty, Please Check an option")
-            except (ValueError, IndexError):
-                self.worker_logs.emit("\n"+"Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: \n" + str(e))
-                print("Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: " + str(e))
-                self.finished.emit()
-            
-            self.i = 10
-            
-            
-            self.__PALIGO_CLIENT__ = cfg.paligoConnect["auth"]
-            print(self.__PALIGO_CLIENT__)
-            self.url = app_settings("prod_paligo_request", "request", "forks")[0][1]
-            self.cdu_data_base = file_access("db/paligo", "db")
-            self.paligo_db = "db/paligo.db"
-            callnumber = self.callnumbers + 1
-            self.prgEcrmt = 90 / callnumber
-            self.progress.emit(self.i)
-            for choice in self.selections_list:
-                working_pub_list = []
-                publication_list = app_settings("prod_paligo_publications", "publication_category", choice)
-                for pub in publication_list:
-                    if pub[4] == "publication":
-                        working_pub_list.append(pub)
-                
-                for pub in working_pub_list:
-                    self.ordered_forks_fetch_list = []
-                    _name = pub[0]
-                    _id = pub[1]
-                    try:
-                        self.paligo_drill_forks_structure([_id], _name)
-                    except Exception as e:
-                        print("paligo_drilling_structure_error "+ str(e))
-                    try:
-                        self.save_publication_to_sqlite(self.ordered_forks_fetch_list, _name)
-                    except Exception as e:
-                        print("failed to save data to sqlite"+str(e))
-                    
-                    self.i += self.prgEcrmt
-                    self.progress.emit(math.floor(self.i))
-                    print(f"Traitement de la publication {_name} terminé!")
-            generate_date = Last_change_date("all_publications")
-            date = generate_date.save_last_modified_date()
-            self.date_update.emit(date)
-            
-            #for testing purposes only
-            #self.ordered_forks_fetch_list = []
-            #self.paligo_drill_forks_structure([25823523], "reglement_l_11870")
-            
-            
-            self.i = 100
-            self.progress.emit(self.i)
-            self.finished.emit()
-        except Exception as e:
-            self.worker_logs.emit("\n"+"Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: \n" + str(e))
-            print("Impossible d'effectuer la fonction run_create_publication_database pour la raison suivante: " + str(e))
-            self.finished.emit()
-        return "Publication database completed"
-    
     def paligo_requests(self, _parent: str):
         """Simple Get Request for Paligo Forks
 
@@ -246,7 +127,6 @@ class Paligo_publication_watcher(QObject):
             depth_1_id_list = []
             for f in depth_1_response:
                 print(f["document"]["name"])
-                self.worker_logs.emit(f["document"]["name"])
                 fork_id = f["id"]
                 fork_uuid = f["uuid"]
                 _parent = f["parent"]
@@ -262,8 +142,6 @@ class Paligo_publication_watcher(QObject):
                 #print("extracting {}".format(f["document"]["name"]))
                 if f["document"]["name"] != "Grilles de zonage":
                     self.ordered_forks_fetch_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name,"taxonomies": doc_taxonomy, "content": doc_content}})
-                    self.i += self.prgEcrmt
-                    self.progress.emit(math.floor(self.i))
             if fork_id:    
                 depth_2 = self.thread_paligo_requests(depth_1_id_list)
             
@@ -271,7 +149,7 @@ class Paligo_publication_watcher(QObject):
                     depth_2_response = i["forks"]
                     depth_2_id_list = []
                     for f in depth_2_response:
-                        self.worker_logs.emit(f["document"]["name"])
+                      
                         print(f["document"]["name"])
                         fork_id = f["id"]
                         fork_uuid = f["uuid"]
@@ -287,8 +165,6 @@ class Paligo_publication_watcher(QObject):
                         #print("extracting {}".format(f["document"]["name"]))
                         if f["document"]["name"] != "Grilles de zonage":
                             self.ordered_forks_fetch_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name,"taxonomies": doc_taxonomy, "content": doc_content}})
-                            self.i += self.prgEcrmt
-                            self.progress.emit(math.floor(self.i))
                     if fork_id:    
                         depth_3 = self.thread_paligo_requests(depth_2_id_list)
                         
@@ -296,7 +172,7 @@ class Paligo_publication_watcher(QObject):
                             depth_3_response = i["forks"]
                             depth_3_id_list = []
                             for f in depth_3_response:
-                                self.worker_logs.emit(f["document"]["name"])
+                                
                                 print(f["document"]["name"])
                                 fork_id = f["id"]
                                 fork_uuid = f["uuid"]
@@ -310,8 +186,6 @@ class Paligo_publication_watcher(QObject):
                                 depth_3_id_list.append(fork_id)
                                 #print("extracting {}".format(f["document"]["name"]))
                                 self.ordered_forks_fetch_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name,"taxonomies": doc_taxonomy, "content": doc_content}})
-                                self.i += self.prgEcrmt
-                                self.progress.emit(math.floor(self.i))
                             if fork_id:
                                 depth_4 = self.thread_paligo_requests(depth_3_id_list)
                                 
@@ -320,7 +194,7 @@ class Paligo_publication_watcher(QObject):
                                     depth_4_id_list = []
                                     for f in depth_4_response:
                                         print(f["document"]["name"])
-                                        self.worker_logs.emit(f["document"]["name"])
+                                       
                                         fork_id = f["id"]
                                         fork_uuid = f["uuid"]
                                         _parent = f["parent"]
@@ -333,8 +207,6 @@ class Paligo_publication_watcher(QObject):
                                         depth_4_id_list.append(fork_id)
                                         #print("extracting {}".format(f["document"]["name"]))
                                         self.ordered_forks_fetch_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name,"taxonomies": doc_taxonomy, "content": doc_content}})
-                                        self.i += self.prgEcrmt
-                                        self.progress.emit(math.floor(self.i))
                                     if fork_id:    
                                         depth_5 = self.thread_paligo_requests(depth_4_id_list)
                                         
@@ -343,7 +215,6 @@ class Paligo_publication_watcher(QObject):
                                             depth_5_id_list = []
                                             for f in depth_5_response:
                                                 print(f["document"]["name"])
-                                                self.worker_logs.emit(f["document"]["name"])
                                                 fork_id = f["id"]
                                                 fork_uuid = f["uuid"]
                                                 _parent = f["parent"]
@@ -356,8 +227,8 @@ class Paligo_publication_watcher(QObject):
                                                 depth_5_id_list.append(fork_id)
                                                 #print("extracting {}".format(f["document"]["name"]))
                                                 self.ordered_forks_fetch_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name,"taxonomies": doc_taxonomy, "content": doc_content}})
-                                                self.i += self.prgEcrmt
-                                                self.progress.emit(math.floor(self.i))
+                                                
+                                                
                                             if fork_id:    
                                                 depth_6 = self.thread_paligo_requests(depth_5_id_list)
 
@@ -366,7 +237,6 @@ class Paligo_publication_watcher(QObject):
                                                     depth_6_id_list = []
                                                     for f in depth_6_response:
                                                         print(f["document"]["name"])
-                                                        self.worker_logs.emit(f["document"]["name"])
                                                         fork_id = f["id"]
                                                         fork_uuid = f["uuid"]
                                                         _parent = f["parent"]
@@ -379,8 +249,8 @@ class Paligo_publication_watcher(QObject):
                                                         depth_6_id_list.append(fork_id)
                                                         #print("extracting {}".format(f["document"]["name"]))
                                                         self.ordered_forks_fetch_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name, "taxonomies": doc_taxonomy, "content": doc_content}})
-                                                        self.i += self.prgEcrmt
-                                                        self.progress.emit(math.floor(self.i))
+                                                        
+                                                        
         #print(self.ordered_forks_fetch_list)
         return self.ordered_forks_fetch_list                                                
         
@@ -477,5 +347,5 @@ class Paligo_publication_watcher(QObject):
         
 if __name__ == "__main__":
     watcher = Paligo_publication_watcher()
-    watcher.run_create_publication_database()
+    watcher.run_bypass_pub_db()
     
