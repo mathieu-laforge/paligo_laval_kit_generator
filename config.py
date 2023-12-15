@@ -6,6 +6,15 @@ paligoConnect = {
 taxonomies_id = 4555141
 lexiques_id = 10374290
 fiches_tags = ["t5_general","t5_utilisation_cours", "t5_utilisation_toits", "tab_t5_utilisation_cours", "tab_t5_utilisation_toits"]
+fe_externe_PROD = "https://info-reglements.laval.ca"
+
+fe_interne_PROD = "https://info-reglements-employes.laval.ca"
+fe_interne_PREPROD = "https://info-reglements-employes-preprod.laval.ca"
+fe_interne_TEST = "https://info-reglements-employes-test.laval.ca"
+fe_interne_DEV = "https://info-reglements-employes-dev.laval.ca"
+
+
+
 
 """ Information dans une BD pour être modifié par l'utilisateur"""
 """paligoGetDev = {
