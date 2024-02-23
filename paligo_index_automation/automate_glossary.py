@@ -20,8 +20,13 @@ class Automate_glossary:
             doc_content = i[9]
             content_soup = Soup(doc_content, "xml")
             post = False
+            
+            ### To do: Essayer de reconstruire completement le para content... en faisant un append de tout le nouveau contenu
+            
+            
             for para in content_soup.find_all("para"):
                 para_content: Soup = para.contents
+                para.clear()
                 for element in para_content:
                     print(element.index)
                     print(element)
@@ -44,8 +49,13 @@ class Automate_glossary:
                                     new_text = "<para>"+part1+f"""<glossterm baseform="{term}">{gloss}</glossterm>"""+part2+"</para>"
                                     soup_element = Soup(new_text, "xml")
                                     new_elements = soup_element.para.contents
-                                    element.replace_with(new_elements)
+                                    for e in new_elements:
+                                        para.append(e)
                                     post = True
+                                    
+                                    
+                    else:
+                        para.append(element)
                                     
             if post is True:
                 response = self.paligo_r.post_document_by_ids(self.paligo_r._document_url, doc_id, str(content_soup))                      
