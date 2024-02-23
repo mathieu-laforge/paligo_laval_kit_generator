@@ -1,7 +1,7 @@
 from generate_pdf_kits.generate_kits import Generate_kits_publications
 from paligo_publications.pull_publications import Extractions_kits, Extraction_annexe_B
 from paligo_publications.paligo_publication_watcher import Paligo_publication_watcher
-
+from paligo_publication_schema.publication_schema_builder import Publication_schema_builder
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -53,6 +53,10 @@ class init_ui_text:
             print("        Créer un ficher excel des liens vers le règlement")
             print("")
             
+            print(f"{bcolors.BOLD}5. {bcolors.ENDC}{bcolors.OKGREEN}GENERATION DES SCHEMAS{bcolors.ENDC}")
+            print("        Créer les schemas de publication à partir des publications extraites de Paligo.")
+            print("")
+            
             print(f"{bcolors.BOLD}X {bcolors.ENDC}{bcolors.OKGREEN}Terminer et quitter{bcolors.ENDC}")
             print("")
             #print(f"{bcolors.BOLD}3. {bcolors.ENDC}Else")
@@ -100,8 +104,10 @@ class init_ui_text:
             print(f"{bcolors.BOLD}2. {bcolors.ENDC}Supprimer les exceptions")
             print("")
 
-
-
+      def schema_generator_ui(self):
+            print(f"{bcolors.HEADER}Lancement... Schema Generator{bcolors.ENDC}")
+            print("")
+      
 
 
 
@@ -123,7 +129,7 @@ class Docubo_program:
 
       def menu_principal(self):
             self.ui.menu_principal()      
-                  
+            self.choice = None      
             self.choice = input("Entrer le numéro de l'option (1, 2, 3, etc.): ")
             while self.choice != "x":
                   if self.choice == "1":
@@ -148,16 +154,21 @@ class Docubo_program:
                         except Exception as e:
                               print(e)
                         self.ui.succes()
-                        self.ui.menu_principal()
+                        self.menu_principal()
 
                   if self.choice == "3":
                         self.extraction_kits()
+                        self.menu_principal()
 
-                  if self.choice == "4":            
-                        pass
+                  if self.choice == "4":
+                        self.menu_principal()
+                  
+                  if self.choice == "5":            
+                        self.schema_generator()
+                        self.menu_principal()
                   
                   if self.choice.lower() == "x":
-                        break      
+                        self.menu_principal()    
                                
       def extraction_kits(self):
             self.ui.extraction_kits()
@@ -207,7 +218,13 @@ class Docubo_program:
                   if self.choice.lower() == "x":
                         break
           
-            
+      def schema_generator(self):
+            self.ui.schema_generator_ui()
+            schema = Publication_schema_builder("cdu_publication", "Code de l'urbanisme", "cdu")
+            schema.create_schema()
+            schema2 = Publication_schema_builder("autres_règlements", "Autres règlements", "autres")
+            schema2.create_schema()
+            print("Schemas terminés!")   
 
 if __name__ == "__main__":
     Docubo_program()
