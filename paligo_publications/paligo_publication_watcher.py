@@ -12,21 +12,44 @@ from utils.sqlite_db_management import SqLite_DB_manager
 from utils.date import Last_change_date
 from utils.sqlite_db_management import SqLite_DB_manager
 from paligo_publications.topic_media_object_finder import Topic_media_objects_finder as MF
-
+from paligo_requests.paligo_requests import Paligo_request
 
 
 class Paligo_publication_watcher():
   
     def __init__(self):
-        pass
-    
+        self.url = app_settings("prod_paligo_request", "request", "forks")[0][1]
+        self.cdu_data_base = file_access("db/paligo", "db")
+    def update_one_topic (self, topic_id, table_name):
+        topic_list = []
+        paligo_r = Paligo_request("prod")
+        r = paligo_r.get_document_by_ids(paligo_r._forks_url, topic_id, True)
+        
+        
+        fork_id = r["id"]
+        fork_uuid = r["uuid"]
+        _parent = r["parent"]
+        _position = r["position"]
+        _depth = r["depth"]
+        doc_id = r["document"]["id"]
+        doc_name = r["document"]["name"]
+        doc_content = r["document"]["content"]
+        doc_taxonomy = r["document"]["taxonomies"]
+        
+        
+        depth_1_name = r["document"]["name"]
+        #print("extracting {}".format(f["document"]["name"]))
+        
+        topic_list.append({"id": fork_id,"uuid": fork_uuid, "parent": _parent, "position": _position, "depth": _depth, "document": {"id": doc_id, "name": doc_name,"taxonomies": doc_taxonomy, "content": doc_content}}) 
+        self.update_sqlite(topic_list, table_name)
+        
+        
     def run_bypass_pub_db(self):
         try: 
             self.selections_list = ["cdu", "autres_regl"]
             self.__PALIGO_CLIENT__ = cfg.paligoConnect["auth"]
             print(self.__PALIGO_CLIENT__)
-            self.url = app_settings("prod_paligo_request", "request", "forks")[0][1]
-            self.cdu_data_base = file_access("db/paligo", "db")
+            
             self.paligo_db = "db/paligo.db"
             for choice in self.selections_list:
                 working_pub_list = []
@@ -254,7 +277,72 @@ class Paligo_publication_watcher():
         #print(self.ordered_forks_fetch_list)
         return self.ordered_forks_fetch_list                                                
         
-        
+    def update_sqlite(self, input_data, table_name):
+        self.publications_db = SqLite_DB_manager(self.cdu_data_base, table_name) 
+        for topic in input_data:
+            
+            
+            if "id" in topic:
+                _id = topic["id"]
+            else:
+                _id = None
+            
+            if "uuid" in topic:
+                _uuid = topic["uuid"]
+            else:
+                _uuid = None
+            
+            if "parent" in topic:
+                _parent = topic["parent"]
+            else:
+                _parent = None
+                
+            if "position" in topic:
+                _position = topic["position"]
+            else:
+                _position = None
+                
+            if "depth" in topic:
+                _depth = topic["depth"]
+            else:
+                _depth = None
+                
+            if "id" in topic["document"]:
+                _doc_id = topic["document"]["id"]
+            else:
+                _doc_id = None
+            
+            if "name" in topic["document"]:
+                _doc_name = topic["document"]["name"]
+            else:
+                _doc_name = None
+            
+            if "taxonomies" in topic["document"]:
+                taxonomies = topic["document"]["taxonomies"]
+                taxonomies_list = []
+                for tax in taxonomies:
+                    tax_name = tax["title"]
+                    taxonomies_list.append(tax_name)
+                _doc_taxonomies = ", ".join(taxonomies_list)
+            else:
+                _doc_taxonomies = None
+            
+            if "content" in topic["document"]:
+                _doc_content = topic["document"]["content"]
+            else:
+                _doc_content = None
+            images_list = MF().media_objects_finder(_doc_content)
+            _num_figures = len(images_list)     
+            images_data = []
+            for image in images_list:
+                image_strings = str(image)
+                images_data.append(image_strings)
+            _figures_data = ", ".join(images_data)
+
+            
+            
+            self.publications_db.update_data("doc_content = ?" , "doc_id = ?", (25, _doc_content, _doc_id))
+            print(f"Data added in table: {table_name} - {_doc_name}")    
         
     def save_publication_to_sqlite(self, input_data: list, table_name: str):
         """Save All collected Data from requests into SQlite Table in the predefined database
@@ -263,7 +351,7 @@ class Paligo_publication_watcher():
             input_data (list): List of all topics collected from requests
             table_name (str): Name of the table to save the data
         """ 
-        self.publications_db = SqLite_DB_manager(self.paligo_db, table_name) 
+        self.publications_db = SqLite_DB_manager(self.cdu_data_base, table_name) 
         self.publications_db.create_table(["fork_id Int", "uuid Text", "parent Text", "position Text", "depth Text", "doc_id Text", "doc_name Text", "doc_taxonomies Text", "doc_content Text", "num_figures Int", "figures_data Text"], "fork_id")      
         """connection = sqlite3.connect(self.cdu_data_base)
         cursor = connection.cursor()
@@ -347,5 +435,5 @@ class Paligo_publication_watcher():
         
 if __name__ == "__main__":
     watcher = Paligo_publication_watcher()
-    watcher.run_bypass_pub_db()
+    watcher.update_one_topic(1815972, "cdu_publication")
     

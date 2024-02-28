@@ -112,6 +112,7 @@ class SqLite_DB_manager:
             sql = f"""UPDATE {self.table_name} SET {sql_query_set} WHERE {column_name_reference} = ?"""
             cursor.execute(sql, updated_data)
             connection.commit()
+            print("Sqlite Table updated!")
         except Exception as e:
             print("Erreur lors de la requête "+str(e))
             

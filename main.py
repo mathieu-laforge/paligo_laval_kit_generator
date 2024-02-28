@@ -2,6 +2,7 @@ from generate_pdf_kits.generate_kits import Generate_kits_publications
 from paligo_publications.pull_publications import Extractions_kits, Extraction_annexe_B
 from paligo_publications.paligo_publication_watcher import Paligo_publication_watcher
 from paligo_publication_schema.publication_schema_builder import Publication_schema_builder
+from paligo_index_automation.automate_glossary import Automate_glossary
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -49,12 +50,15 @@ class init_ui_text:
             print("        Séparer ou combiner des PDF")
             print("")
             
-            print(f"{bcolors.BOLD}4. {bcolors.ENDC}{bcolors.OKGREEN}LISTE DES LIENS (MIRE MOBILE){bcolors.ENDC}")
+            
+            print(f"{bcolors.BOLD}4. {bcolors.ENDC}{bcolors.OKGREEN}GENERATION DES SCHEMAS et LISTE DES LIENS (MIRE MOBILE){bcolors.ENDC}")
+            print("        Créer les schemas de publication à partir des publications extraites de Paligo.")
             print("        Créer un ficher excel des liens vers le règlement")
             print("")
             
-            print(f"{bcolors.BOLD}5. {bcolors.ENDC}{bcolors.OKGREEN}GENERATION DES SCHEMAS{bcolors.ENDC}")
-            print("        Créer les schemas de publication à partir des publications extraites de Paligo.")
+            print(f"{bcolors.BOLD}5. {bcolors.ENDC}{bcolors.OKGREEN}GLOSSAIRE DU CDU{bcolors.ENDC}")
+            print("        Automatisation du glossaire pour le CDU (seulement pour l'instant)")
+            
             print("")
             
             print(f"{bcolors.BOLD}X {bcolors.ENDC}{bcolors.OKGREEN}Terminer et quitter{bcolors.ENDC}")
@@ -83,7 +87,9 @@ class init_ui_text:
             print("")
             print(f"{bcolors.BOLD}2. {bcolors.ENDC}GRILLES D'EXCEPTION - créer un PDF par grille d'Exception.")
             print("")
-            print(f"{bcolors.BOLD}3. {bcolors.ENDC}DOCUMENTS SPÉCIFIQUES - Permet de tirer la publication d'un ou plusieurs documents")
+            print(f"{bcolors.BOLD}3. {bcolors.ENDC}COMBINAISON DE 1. ET 2.")
+            print("")
+            print(f"{bcolors.BOLD}4. {bcolors.ENDC}DOCUMENTS SPÉCIFIQUES - Permet de tirer la publication d'un ou plusieurs documents")
             print("")
             print(f"{bcolors.BOLD}X {bcolors.ENDC}Terminer et quitter")
             print("")
@@ -161,11 +167,21 @@ class Docubo_program:
                         self.menu_principal()
 
                   if self.choice == "4":
+                        self.schema_generator()
                         self.menu_principal()
                   
                   if self.choice == "5":            
-                        self.schema_generator()
+                        try:
+                              #Fiches et extraits
+                              atm = Automate_glossary("cdu_publication", 10381520)
+                              atm.find_matching_words()
+                        except Exception as e:
+                              self.ui.fail(e)      
+                              self.menu_principal()
+                        self.ui.succes()     
                         self.menu_principal()
+                        
+                  
                   
                   if self.choice.lower() == "x":
                         self.menu_principal()    
@@ -196,7 +212,19 @@ class Docubo_program:
                         self.ui.succes()     
                         self.menu_principal()
 
-                  if self.choice == "3":      
+                  if self.choice == "3":
+                        try:
+                              ext_annexe = Extraction_annexe_B()
+                              ext_annexe.run_extraction_annexe_b()
+                              ext_k = Extractions_kits()
+                              ext_k.run_kits_extraction()
+                        except Exception as e:
+                              self.ui.fail(e)      
+                              self.menu_principal()
+                        self.ui.succes()     
+                        self.menu_principal()
+                        
+                  if self.choice == "4":
                         try:
                               user_input = input("Give a single or multiple publications names (\", \" separated): ")
                               user_list = []
