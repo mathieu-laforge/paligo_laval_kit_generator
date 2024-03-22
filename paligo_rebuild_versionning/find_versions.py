@@ -17,6 +17,8 @@ class Find_topic_versions():
     def __init__(self):
         self.paligo_r = Paligo_request("prod")
         self.missed_revert_articles = []
+        data = read_data_from_json("paligo_rebuild_versionning\\temprestart_list_v2.json")
+        self.restart_list = data
     def collect_versionning_data(self):
         # Make sys path
         v1_publication_xml_file = file_access("db\cdu_xml", "xml")
@@ -182,43 +184,93 @@ class Find_topic_versions():
         soup.append(tag)
         #
         #print(tag)
+        
+    def paligo_xml_fct_change_a_class_name(self, content_soup: Soup, tag_targeted: str, old_class: str, new_class:str):
+        """Paligo XML function to change a class name in all given tags in a section.
+
+        Args:
+            content_soup (Soup): the BeautifulSoup element of the topic content
+            tag_targeted (str): the targeted tag
+            old_class (str): the name of the existing class we want the name to be changed
+            new_class (str): the NEW class name
+        """        
+        for tag in content_soup.section.find_all(tag_targeted):
+            if old_class in tag.attrs:
+                var = tag[old_class]
+                del tag[old_class]
+                tag[new_class] = var
+    def paligo_xml_fct_change_a_tag_name(self, content_soup: Soup, tag_targeted: str, old_name: str, new_name:str):
+        pass
+    
+    
     def revert_to_v2(self):
+        
         """Revert content from Json file to the latest version
         """        
         json_reverting_list = read_data_from_json("list_articles_for_reverting.json")
         for i in json_reverting_list:
+            
             v2_data = i["v2"]
             topic_id = v2_data["attributes"]["xinfo:resource-id"]
-            t_content = "<section>\n" +v2_data["content"] + "\n</section>"
-            content_soup = Soup(t_content, "xml")
-            self.paligo_xml_info(content_soup)
-            section = content_soup.section
-            self.xmlns_info(section, v2_data["attributes"])
-            
-            ### Rebuild Paligo variable-set element in topics
-            for phrase in content_soup.section.find_all("phrase"):
-                x_var = phrase["variable"]
-                x_set = phrase["varset"]
-                del phrase["variable"]
-                del phrase["varset"]
+            check_match = [x for x in self.restart_list if x["topic_id"] == topic_id]
+            if len(check_match) == 0:
+                t_content = "<section>\n" +v2_data["content"] + "\n</section>"
+                content_soup = Soup(t_content, "xml")
+                self.paligo_xml_info(content_soup)
+                section = content_soup.section
+                self.xmlns_info(section, v2_data["attributes"])
                 
-                phrase["xinfo:variable"] = x_var
-                phrase["xinfo:varset"] = x_set
+                ### Rebuild Paligo variable-set element in topics
+                for phrase in content_soup.section.find_all("phrase"):
+                    x_var = phrase["variable"]
+                    x_set = phrase["varset"]
+                    del phrase["variable"]
+                    del phrase["varset"]
+                    
+                    phrase["xinfo:variable"] = x_var
+                    phrase["xinfo:varset"] = x_set
+                    
+                for text in content_soup.section.find_all(self.has_class_text):
+                    del text["text"]
+                content_post = str(content_soup)
+                #print(content_post)
+                new_soup = Soup(str(content_post), "xml")
+                new_soup.section["xmlns:xlink"] = "http://www.w3.org/1999/xlink"
+                new_soup.section["xmlns:xi"] = "http://www.w3.org/2001/XInclude"
+                # print(xi_include)
+                new_soup.section["xmlns"] = "http://docbook.org/ns/docbook"
+                new_soup.section["xmlns:xinfo"] = "http://ns.expertinfo.se/cms/xmlns/1.0"
                 
-            for text in content_soup.section.find_all(self.has_class_text):
-                del text["text"]
-            content_post = str(content_soup)
-            #print(content_post)
-            new_soup = Soup(str(content_post), "xml")
-            #print(new_soup)
-            new_content_post = str(new_soup)
-            response = self.paligo_r.post_document_by_ids(self.paligo_r._document_url, int(topic_id), new_content_post)
-            if response.status_code in [200, 201]:
-                print(f"Susccessfully reverted to v2: {topic_id}, stauts code: {response.status_code}")
-            while response.status_code not in [200, 201]:
+                for include in new_soup.section.find_all("include"):
+                    if include is not None:
+                        include.name = "xi:include"
+                for fallback in new_soup.section.find_all("fallback"):
+                    if fallback is not None:
+                        fallback.name = "xi:fallback"
+                
+                self.paligo_xml_fct_change_a_class_name(new_soup, "para", "translate", "xinfo:translate")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "imagedata", "image", "xinfo:image")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "phrase", "merge-context", "xinfo:merge-context")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "emphasis", "merge-context", "xinfo:merge-context")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "footnote", "merge-context", "xinfo:merge-context")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "superscript", "merge-context", "xinfo:merge-context")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "subscript", "merge-context", "xinfo:merge-context")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "para", "status", "xinfo:status")
+                self.paligo_xml_fct_change_a_class_name(new_soup, "link", "href", "xlink:href")
+                new_soup.section["xinfo:version"] = "2"
+                #print(new_soup)
+                new_content_post = str(new_soup)
                 response = self.paligo_r.post_document_by_ids(self.paligo_r._document_url, int(topic_id), new_content_post)
-                print(f"Error while posting check document id: {topic_id}")
-                time.sleep(30)    
+                if response.status_code in [200, 201]:
+                    print(f"Susccessfully reverted to v2: {topic_id}, stauts code: {response.status_code}")
+                    self.restart_list.append({"topic_id": topic_id, "status_code": response.status_code})
+                    save_data_to_json(self.restart_list, "paligo_rebuild_versionning\\temprestart_list_v2.json")
+                while response.status_code not in [200, 201]:
+                    response = self.paligo_r.post_document_by_ids(self.paligo_r._document_url, int(topic_id), new_content_post)
+                    print(f"Error while posting check document id: {topic_id}")
+                    time.sleep(30)
+                time.sleep(3)
+        save_data_to_json([], "paligo_rebuild_versionning\\temprestart_list_v2.json")
     def list_erors(self):
         list_error_topic_name = []
         errors = read_data_from_json("missed_article_reverting.json") 
