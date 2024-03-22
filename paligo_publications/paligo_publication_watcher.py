@@ -20,6 +20,7 @@ class Paligo_publication_watcher():
     def __init__(self):
         self.url = app_settings("prod_paligo_request", "request", "forks")[0][1]
         self.cdu_data_base = file_access("db/paligo", "db")
+        self.paligo_r = Paligo_request("prod")
     def update_one_topic (self, topic_id, table_name):
         topic_list = []
         paligo_r = Paligo_request("prod")
@@ -50,7 +51,7 @@ class Paligo_publication_watcher():
             self.__PALIGO_CLIENT__ = cfg.paligoConnect["auth"]
             print(self.__PALIGO_CLIENT__)
             
-            self.paligo_db = "db/paligo.db"
+            self.paligo_db = file_access("db/paligo", "db")
             for choice in self.selections_list:
                 working_pub_list = []
                 publication_list = app_settings("prod_paligo_publications", "publication_category", choice)
@@ -99,12 +100,15 @@ class Paligo_publication_watcher():
         headers = {
             'Accept': 'application/json',
             'Authorization': "basic" + apiKey,
+            
         }
         params = {
             "parent": str(_parent)
         }
         
         time.sleep(1)
+        
+        
         return requests.get(self.url, headers=headers, params=params)    
 
     def thread_paligo_requests(self, parent_id_list):
@@ -119,12 +123,18 @@ class Paligo_publication_watcher():
 
         with ThreadPoolExecutor(max_workers=3) as pool:
             response_list = list(pool.map(self.paligo_requests, parent_id_list))
+            
         all_responses = []
 
         for response in response_list:
+            
             #print(response.status_code)
             data = response.json()
+        
             all_responses.append(data)
+            while data["next_page"] != "":
+                data = self.paligo_r.get_document_by_ids(data["next_page"], "", True)
+                all_responses.append(data)
 
         return all_responses
     
@@ -363,7 +373,7 @@ class Paligo_publication_watcher():
         cursor.execute(
             f'CREATE TABLE if not exists {table_name} (id Int, uuid Text, parent Text, position Text, depth Text, doc_id Text, doc_name Text, doc_taxonomies Text, doc_content Text, num_figures Int, figures_data Text)')
         connection.commit()"""
-        display_DB = SqLite_DB_manager("db/display_paligo.db", table_name)
+        display_DB = SqLite_DB_manager(file_access("db/display_paligo", "db"), table_name)
         display_DB.create_table(["fork_id Int", "topic_id Int", "name Text", "taxonomies Text", "num_figures Int", "figures_data Text"], "fork_id")
         for topic in input_data:
             
@@ -435,5 +445,5 @@ class Paligo_publication_watcher():
         
 if __name__ == "__main__":
     watcher = Paligo_publication_watcher()
-    watcher.update_one_topic(1815972, "cdu_publication")
+    watcher.run_bypass_pub_db()
     

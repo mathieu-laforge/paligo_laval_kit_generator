@@ -19,12 +19,29 @@ class Automate_glossary:
         self.publication_content = pub_c.get_sql_DB()
         x_gloss = Extract_glossary(glossary_doc_id)
         self.glossterm_list = x_gloss.glossterms()
-        json_gloss_list = []
-        """for i in self.glossterm_list:
+        self.json_gloss_list = []
+        for i in self.glossterm_list:
             gloss_reference = i
-            gloss_common_use = [""]
-            json_gloss_list.append({"gloss_reference": gloss_reference, "gloss_common_use": gloss_common_use})
-        save_data_to_json(json_gloss_list, "glossary_match_references.json")"""   
+            if len(i.split(" ou ")) > 1:
+                split = i.split(" ou ")
+                #print(split)
+                gloss_common_use = []
+                for g in split:
+                    if len(g.split(" ")) == 1:
+                        words = len(i.split(" "))
+                        #print(words)
+                        if "terrain" in i.lower().split(" "):
+                            #print(i)
+                            completion = i.split(" ")[3:]
+                            gloss_common_use.append(g+" "+' '.join(completion))
+                    else:
+                        
+                        gloss_common_use.append(g)
+                    
+            else:
+                gloss_common_use = None
+            self.json_gloss_list.append({"gloss_reference": gloss_reference, "gloss_common_use": gloss_common_use})
+        save_data_to_json(self.json_gloss_list, "glossary_match_references.json")  
         self.paligo_r = Paligo_request("prod")
     
     def find_matching_words(self, specific_doc_id: int = None):
@@ -52,67 +69,124 @@ class Automate_glossary:
     def construct_glossary(self, doc_id, content_soup: Soup, doc_name):             
         post = False
         
-        for term in self.glossterm_list:
-                
-            #print(self.glossterm_list)
-            for para in content_soup.find_all("para"):
-                para_content: Soup = para.contents
-                para_content_list = []
-                for element in para_content:
-                    if type(element) == bs4.element.NavigableString:
-                        if element is not None:
-                            lower_para_text = element.lower()
-                            index = lower_para_text.find(term.lower())
-                            if index != -1:
-                                token = Text_tokenizer()
-                                tokenize_text = token.tokenize(lower_para_text)
-                                tokenize_term = token.tokenize(term.lower())
-                                #print(tokenize_text)
-                                confirm_token = [x for x in tokenize_text if x in tokenize_term]
-                                #print(confirm_token)
-                                if len(confirm_token) != 0:
-                                    plurial_buffer = 0
-                                    end_index = len(term) + index
-                                    try:
-                                        element[end_index]
-                                        the_END_index = end_index
-                                    except IndexError:
-                                        print("invalid Index")
-                                        the_END_index = end_index-1
-                                    finally: 
-                                        if element[the_END_index] == "s":
-                                            plurial_buffer = +1
-                                        if element[the_END_index] in ["s", " ", ";", ",", "."]:
-                                            #print(element[end_index])
-                                            part1 = element[:index]
-                                            gloss = element[index: the_END_index + plurial_buffer]
-                                            if the_END_index != end_index-1:
-                                                part2 = element[the_END_index + plurial_buffer:]
-                                            else:
-                                                part2 = ""
-                                            new_text = "<para>"+part1+f"""<glossterm baseform="{term}">{gloss}</glossterm>"""+part2+"</para>"
-                                            soup_element = Soup(new_text, "xml")
-                                            new_elements = soup_element.para.contents
-                                            self.tot_gloss_count +=1
-                                            for e in new_elements:
-                                                para_content_list.append(e)
-                                            post = True
+        for term in self.json_gloss_list:
+            if term["gloss_common_use"] is not None:  
+                for g in term["gloss_common_use"]:
+                    term = g
+                    for para in content_soup.find_all("para"):
+                        para_content: Soup = para.contents
+                        para_content_list = []
+                        for element in para_content:
+                            if type(element) == bs4.element.NavigableString:
+                                if element is not None:
+                                    lower_para_text = element.lower()
+                                    index = lower_para_text.find(term.lower())
+                                    if index != -1:
+                                        token = Text_tokenizer()
+                                        tokenize_text = token.tokenize(lower_para_text)
+                                        tokenize_term = token.tokenize(term.lower())
+                                        #print(tokenize_text)
+                                        confirm_token = [x for x in tokenize_text if x in tokenize_term]
+                                        #print(confirm_token)
+                                        if len(confirm_token) != 0:
+                                            plurial_buffer = 0
+                                            end_index = len(term) + index
+                                            try:
+                                                element[end_index]
+                                                the_END_index = end_index
+                                            except IndexError:
+                                                print("invalid Index")
+                                                the_END_index = end_index-1
+                                            finally: 
+                                                if element[the_END_index] == "s":
+                                                    plurial_buffer = +1
+                                                if element[the_END_index] in ["s", " ", ";", ",", "."]:
+                                                    #print(element[end_index])
+                                                    part1 = element[:index]
+                                                    gloss = element[index: the_END_index + plurial_buffer]
+                                                    if the_END_index != end_index-1:
+                                                        part2 = element[the_END_index + plurial_buffer:]
+                                                    else:
+                                                        part2 = ""
+                                                    new_text = "<para>"+part1+f"""<glossterm baseform="{term}">{gloss}</glossterm>"""+part2+"</para>"
+                                                    soup_element = Soup(new_text, "xml")
+                                                    new_elements = soup_element.para.contents
+                                                    self.tot_gloss_count +=1
+                                                    for e in new_elements:
+                                                        para_content_list.append(e)
+                                                    post = True
+                                                else:
+                                                    para_content_list.append(element)
                                         else:
-                                            para_content_list.append(element)
-                                else:
-                                    para_content_list.append(element) 
-                            if index == -1:
-                                para_content_list.append(element)               
-                    else:
-                        para_content_list.append(element)
+                                            para_content_list.append(element) 
+                                    if index == -1:
+                                        para_content_list.append(element)               
+                            else:
+                                para_content_list.append(element)
+                        para.clear()
+                        for e in para_content_list:
+                            para.append(e)
+                    content_soup = Soup(str(content_soup), "xml")  
+                    ### END of conditional Looping   
+            else:
+                term = term["gloss_reference"]
+                for para in content_soup.find_all("para"):
+                    para_content: Soup = para.contents
+                    para_content_list = []
+                    for element in para_content:
+                        if type(element) == bs4.element.NavigableString:
+                            if element is not None:
+                                lower_para_text = element.lower()
+                                index = lower_para_text.find(term.lower())
+                                if index != -1:
+                                    token = Text_tokenizer()
+                                    tokenize_text = token.tokenize(lower_para_text)
+                                    tokenize_term = token.tokenize(term.lower())
+                                    #print(tokenize_text)
+                                    confirm_token = [x for x in tokenize_text if x in tokenize_term]
+                                    #print(confirm_token)
+                                    if len(confirm_token) != 0:
+                                        plurial_buffer = 0
+                                        end_index = len(term) + index
+                                        try:
+                                            element[end_index]
+                                            the_END_index = end_index
+                                        except IndexError:
+                                            print("invalid Index")
+                                            the_END_index = end_index-1
+                                        finally: 
+                                            if element[the_END_index] == "s":
+                                                plurial_buffer = +1
+                                            if element[the_END_index] in ["s", " ", ";", ",", "."]:
+                                                #print(element[end_index])
+                                                part1 = element[:index]
+                                                gloss = element[index: the_END_index + plurial_buffer]
+                                                if the_END_index != end_index-1:
+                                                    part2 = element[the_END_index + plurial_buffer:]
+                                                else:
+                                                    part2 = ""
+                                                new_text = "<para>"+part1+f"""<glossterm baseform="{term}">{gloss}</glossterm>"""+part2+"</para>"
+                                                soup_element = Soup(new_text, "xml")
+                                                new_elements = soup_element.para.contents
+                                                self.tot_gloss_count +=1
+                                                for e in new_elements:
+                                                    para_content_list.append(e)
+                                                post = True
+                                            else:
+                                                para_content_list.append(element)
+                                    else:
+                                        para_content_list.append(element) 
+                                if index == -1:
+                                    para_content_list.append(element)               
+                        else:
+                            para_content_list.append(element)
+                    para.clear()
+                    for e in para_content_list:
+                        para.append(e)
+                content_soup = Soup(str(content_soup), "xml")  
+                ### END of conditional Looping  
                 
-                para.clear()
-                
-                for e in para_content_list:
-                    para.append(e)
-                    
-            
-            content_soup = Soup(str(content_soup), "xml")                    
+                           
         if post is True:
             response = self.paligo_r.post_document_by_ids(self.paligo_r._document_url, doc_id, str(content_soup))                      
             status = response.status_code

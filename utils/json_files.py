@@ -28,7 +28,7 @@ def read_data_from_json(fileInput: str):
     Returns:
         data (str): Le contenu du dossier en JSON strings
     """    
-    f = open(fileInput)
+    f = open(fileInput, encoding='utf-8')
     data = json.load(f)
     f.close()
     return data

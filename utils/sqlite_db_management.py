@@ -10,7 +10,7 @@ class SqLite_DB_manager:
     Arguments
     ---------
     :db_name_path: (string)
-        The relative path to the SQlite database existant or new
+        The relative path to the SQlite database existant or new. WITH THE FILE EXTENSION ex: .db
     :table_name: (string)
         The name of the table to do CRUD operations    
     """
