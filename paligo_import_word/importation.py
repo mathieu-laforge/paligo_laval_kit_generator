@@ -40,21 +40,22 @@ class Importation:
         docx_file = self.importation_document_path
     # Load the .docx document
         doc = Document(docx_file)
-        
+        print(doc)
         # Create the root element for the XML tree
         root = etree.Element("document")
         
-        # Iterate through paragraphs in the document
-        title = doc.core_properties.title
-        if title:
-            title_elem = etree.SubElement(root, "title")
-            title_elem.text = title
+        # Iterate through paragraphs in the documen
+        
         
         # Iterate through paragraphs in the document
         for paragraph in doc.paragraphs:
             # Create a new XML element for each paragraph
-            para_elem = etree.SubElement(root, "paragraph")
-            para_elem.text = paragraph.text
+            if paragraph.style.name == "Heading 1":
+                para_elem = etree.SubElement(root, "title")
+                para_elem.text = paragraph.text
+            else:
+                para_elem = etree.SubElement(root, "paragraph")
+                para_elem.text = paragraph.text
         
         # Iterate through images in the folder
         image_files = os.listdir(images_folder)
