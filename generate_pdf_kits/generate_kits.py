@@ -157,7 +157,7 @@ class Update_kit_publication:
                     for f in forks:
                         multipage_forks.append(f)
                 multipage_forks = {"forks": multipage_forks}    
-                print(multipage_forks)
+                
                 return multipage_forks
             else:
                 return response    
