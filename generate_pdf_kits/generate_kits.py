@@ -71,9 +71,9 @@ class Generate_kits_publications:
         intruders = [x for x in self.existing_publications if x["name"] not in self.kit_lists_names]
         #print(intruders)
         if len(intruders) == 0:
-            print("0 intruder was found in the folder KITS DE RÈGLEMENTS.")
+            print("0 intruder was found in the folder FICHES DE RÈGLEMENTS.")
         else:
-            print(f"{str(len(intruders))} intruder(s) was found in the folder KITS DE RÈGLEMENTS.")
+            print(f"{str(len(intruders))} intruder(s) was found in the folder FICHES DE RÈGLEMENTS.")
             for i in intruders:
                 name = i["name"]
                 response = self.paligo_request.delete_paligo_forks(self.document_url, i["id"])

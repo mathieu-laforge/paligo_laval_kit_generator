@@ -1,7 +1,7 @@
 
 
 paligoConnect = {
-    "auth": "corentin.desfarges@levio.ca:1515003795A4A7A0C779A2021E5A355A52B20F17"
+    "auth": "m.ouelletlaforge@laval.ca:4A1A416ABF1E774B1F7A489466489357F9F9AA77"
 }
 taxonomies_id = 4555141
 lexiques_id = 10374290

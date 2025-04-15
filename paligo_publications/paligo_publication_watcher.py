@@ -67,10 +67,16 @@ class Paligo_publication_watcher():
                         self.paligo_drill_forks_structure([_id], _name)
                     except Exception as e:
                         print("paligo_drilling_structure_error "+ str(e))
-                    try:
-                        self.save_publication_to_sqlite(self.ordered_forks_fetch_list, _name)
-                    except Exception as e:
-                        print("failed to save data to sqlite"+str(e))
+                    finally:
+                        if self.ordered_forks_fetch_list == []:
+                            print("Failed to drill paligo structure")
+                            pass
+                        else:    
+                        
+                            try:
+                                self.save_publication_to_sqlite(self.ordered_forks_fetch_list, _name)
+                            except Exception as e:
+                                print("failed to save data to sqlite"+str(e))
                     
                     print(f"Traitement de la publication {_name} terminé!")
             generate_date = Last_change_date("all_publications")
@@ -130,7 +136,9 @@ class Paligo_publication_watcher():
             
             #print(response.status_code)
             data = response.json()
-        
+            if response.status_code == 401:
+                print("Request is NOT authorized, check Authentication token")
+                break        
             all_responses.append(data)
             while data["next_page"] != "":
                 data = self.paligo_r.get_document_by_ids(data["next_page"], "", True)

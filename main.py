@@ -37,21 +37,33 @@ class init_ui_text:
             print(f"{bcolors.BOLD}Choisisser parmis les options suivantes: ")            
             print("")
             print(f"{bcolors.BOLD}1. {bcolors.ENDC}{bcolors.OKGREEN}MISE À JOUR DE LA BASE DE DONNÉES{bcolors.ENDC}")
+            print(f"        {bcolors.WARNING}   IMPORTANT les fonctions 2 et 3 ont besoin d'une BD à jour{bcolors.ENDC} ")
             print("        Créer une BD sqlite3 avec les publications CDU et autres Reg")
             print("")
             print(f"{bcolors.BOLD}2. {bcolors.ENDC}{bcolors.OKGREEN}MISE À JOUR DES PUBLICATIONS DES FICHES{bcolors.ENDC}")
-            print("        Utilise la base de données existantes")
-            print("        Créer, valider, mettre à jour les publications")
+            print("")
+            print(f"        {bcolors.WARNING}   ICI on explique comment faire des kits... Mais la mise à jour Automatisée{bcolors.ENDC} ")
+            print(f"        {bcolors.WARNING}   c'est juste pour les fiches d'article sans titre, chapitre, etc.{bcolors.ENDC} ")
+            print("        Il faut s'assurer d'avoir créer vos publications à partir d'un chapitre ou une section d'un règlement.")
+            print("        Il faut s'assurer de créer un tag au bon endroit pour créer une fiche d'article")
+            print("        La publication doit avoit des publish settings sauvgardés pour une sortie en pdf plus tard  ")
+            print("        ET CHAQUE PUBLICATION À FAIRE doit être inscrite dans le tableau du topic Liste de kits PDF. ")
+            print("        Le publication name doit être identique à celui que vous avez donner en sauvegardant les publish settings")
             print("")
             
             print(f"{bcolors.BOLD}3. {bcolors.ENDC}{bcolors.OKGREEN}PUBLIER ET EXTRAIRE (PDF){bcolors.ENDC}")
-            print("        Extraire toutes les publications selon la liste de Paligo")
-            print("        Gérérer des PDF")
-            print("        Séparer ou combiner des PDF")
+            print("")
+            print("        Extraire toutes les publications selon la liste de kits PDF dans Paligo")
+            print("        Les documents seront sauvegardés dans un folder nommé production.")
+            print("        C'est la création du dossier Bundle de règlements comptoir.")
             print("")
             
+            print(f"{bcolors.WARNING}Pour changer le token d'accès à Paligo il faut aller dans Config.py{bcolors.ENDC}")
             
-            print(f"{bcolors.BOLD}4. {bcolors.ENDC}{bcolors.OKGREEN}GENERATION DES SCHEMAS et LISTE DES LIENS (MIRE MOBILE){bcolors.ENDC}")
+            
+            
+            
+            """print(f"{bcolors.BOLD}4. {bcolors.ENDC}{bcolors.OKGREEN}GENERATION DES SCHEMAS et LISTE DES LIENS (MIRE MOBILE){bcolors.ENDC}")
             print("        Créer les schemas de publication à partir des publications extraites de Paligo.")
             print("        Créer un ficher excel des liens vers le règlement")
             print("")
@@ -65,13 +77,13 @@ class init_ui_text:
             print("")
             #print(f"{bcolors.BOLD}3. {bcolors.ENDC}Else")
             #print("")
-            #print("")
+            #print("")"""
       
       def generate_fiches(self):
             
             print(f"{bcolors.HEADER}GÉNÉRATION DES FICHES{bcolors.ENDC}")
             print("")
-            print("lancement de la génération")
+            print(f"{bcolors.WARNING}lancement de la génération{bcolors.ENDC}")
             print("")
             
 
@@ -83,14 +95,14 @@ class init_ui_text:
             print("")
             print("Choisir parmis les options suivantes: ")
             print("")
-            print(f"{bcolors.BOLD}1. {bcolors.ENDC}FICHES ET EXTRAITS - Tirer les publications de la liste des kits.")
+            print(f"{bcolors.BOLD}1. {bcolors.ENDC}Extraction et convertion PDF des Extraits, Fiches et Grilles d'exceptions")
             print("")
-            print(f"{bcolors.BOLD}2. {bcolors.ENDC}GRILLES D'EXCEPTION - créer un PDF par grille d'Exception.")
-            print("")
-            print(f"{bcolors.BOLD}3. {bcolors.ENDC}COMBINAISON DE 1. ET 2.")
+            """print(f"{bcolors.BOLD}2. {bcolors.ENDC}GRILLES D'EXCEPTION - Les grilles c'est long! En as-tu vraiment besoin??")
+            print("")"""
+            """print(f"{bcolors.BOLD}3. {bcolors.ENDC}COMBINAISON DE 1. ET 2.")
             print("")
             print(f"{bcolors.BOLD}4. {bcolors.ENDC}DOCUMENTS SPÉCIFIQUES - Permet de tirer la publication d'un ou plusieurs documents")
-            print("")
+            print("")"""
             print(f"{bcolors.BOLD}X {bcolors.ENDC}Terminer et quitter")
             print("")
 
@@ -163,7 +175,15 @@ class Docubo_program:
                         self.menu_principal()
 
                   if self.choice == "3":
-                        self.extraction_kits()
+                        try:
+                              ext_annexe = Extraction_annexe_B()
+                              ext_annexe.run_extraction_annexe_b()
+                              ext_k = Extractions_kits()
+                              ext_k.run_kits_extraction()
+                        except Exception as e:
+                              self.ui.fail(e)      
+                              self.menu_principal()
+                        self.ui.succes()     
                         self.menu_principal()
 
                   if self.choice == "4":
@@ -186,7 +206,7 @@ class Docubo_program:
                   if self.choice.lower() == "x":
                         self.menu_principal()    
                                
-      def extraction_kits(self):
+      """def extraction_kits(self):
             self.ui.extraction_kits()
             self.choice = input("Entrer le numéro de l'option (1, 2, 3, etc.): ")
             while self.choice != "x":
@@ -240,12 +260,12 @@ class Docubo_program:
                         self.menu_principal()
 
                   
-                  """if self.choice == "4":      
-                        pass"""
+                  if self.choice == "4":      
+                        pass
                   
                   if self.choice.lower() == "x":
-                        break
-          
+                        break"""  
+                          
       def schema_generator(self):
             self.ui.schema_generator_ui()
             schema = Publication_schema_builder("cdu_publication", "Code de l'urbanisme", "cdu")
@@ -255,4 +275,5 @@ class Docubo_program:
             print("Schemas terminés!")   
 
 if __name__ == "__main__":
-    Docubo_program()
+    
+      Docubo_program()
