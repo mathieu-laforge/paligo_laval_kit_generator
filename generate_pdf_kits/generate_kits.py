@@ -147,7 +147,21 @@ class Update_kit_publication:
         
         
     def fetch_publication_content(self):
-        return self.paligo_r.get_list_of_documents_by_params(self.forks_url, self.publication_data["id"])
+        response = self.paligo_r.get_list_of_documents_by_params(self.forks_url, self.publication_data["id"])
+        if "total_pages" in response:
+            if response["total_pages"] > 1:
+                multipage_forks = []
+                response = self.paligo_r.paligo_list_generator(self.paligo_r._forks_url, 42898481)
+                for r in response:
+                    forks = r["forks"]
+                    for f in forks:
+                        multipage_forks.append(f)
+                multipage_forks = {"forks": multipage_forks}    
+                print(multipage_forks)
+                return multipage_forks
+            else:
+                return response    
+            
     
     def update_publication_kits(self):
         pub_name = self.publication_data["name"]
