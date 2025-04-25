@@ -176,10 +176,11 @@ class Docubo_program:
 
                   if self.choice == "3":
                         try:
-                              ext_annexe = Extraction_annexe_B()
-                              ext_annexe.run_extraction_annexe_b()
+                              
                               ext_k = Extractions_kits()
                               ext_k.run_kits_extraction()
+                              ext_annexe = Extraction_annexe_B()
+                              ext_annexe.run_extraction_annexe_b()
                         except Exception as e:
                               self.ui.fail(e)      
                               self.menu_principal()
